@@ -1,0 +1,82 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.ENV/
+
+# Packaging / build
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-wheel-metadata/
+
+# =========================
+# FastAPI / ASGI
+# =========================
+.env
+.env.*
+*.env
+uvicorn.log
+gunicorn.log
+*.log
+
+# =========================
+# Pydantic / Cache
+# =========================
+.pydantic/
+.cache/
+
+# =========================
+# Database
+# =========================
+*.db
+*.sqlite
+*.sqlite3
+
+# =========================
+# Alembic / Migrations
+# =========================
+alembic/versions/*.pyc
+alembic/versions/__pycache__/
+
+# =========================
+# Tests / Coverage
+# =========================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+test.db
+
+# =========================
+# IDE / Editors
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.bak
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Project specific
+# =========================
+finance.db
+SUMMARY.md

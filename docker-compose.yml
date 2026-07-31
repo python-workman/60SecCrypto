@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # Контейнер 1: База данных PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: cryptosec_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret_password
+      POSTGRES_DB: deribit_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - cryptosec_postgres_data:/var/lib/postgresql/data
+
+  # Контейнер 2: Python-приложение (FastAPI + Celery Worker + Celery Beat)
+  app:
+    build: .
+    container_name: cryptosec_app
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_USER=postgres
+      - DB_PASSWORD=secret_password
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=deribit_db
+      - DERIBIT_BASE_URL=https://deribit.com
+    depends_on:
+      - db
+
+volumes:
+  cryptosec_postgres_data:
