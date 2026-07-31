@@ -81,7 +81,7 @@ Thumbs.db
 finance.db
 SUMMARY.md
 
-# Локальные файлы Celery Beat (Вот они!)
+# Локальные файлы Celery Beat
 celerybeat-schedule
 celerybeat-schedule.bak
 celerybeat-schedule.dat
