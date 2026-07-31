@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     DB_PORT: int = 5432
     DB_NAME: str = "deribit_db"
 
-    DERIBIT_BASE_URL: str = "https://test.deribit.com/api/v2"
+    DERIBIT_BASE_URL: str = "https://deribit.com/api/v2"
 
     @property
     def database_url_async(self) -> str:

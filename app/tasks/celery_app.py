@@ -3,12 +3,14 @@ import time
 
 from celery import Celery
 from celery.schedules import crontab
+from celery.utils.log import get_task_logger
 
 from app.client.deribit import DeribitClient
 from app.config import settings
 from app.database import SyncSessionLocal
 from app.models import TickerPrice
 
+logger = get_task_logger(__name__)
 
 celery_app = Celery("deribit_tasks", broker=settings.celery_broker_url)
 
@@ -20,63 +22,64 @@ celery_app.conf.update(
             "schedule": crontab(minute="*"),
         },
     },
-    timezone="UTC"
+    timezone="UTC",
+    task_acks_late=True,
+    worker_prefetch_multiplier=1,
 )
 
 
 async def _async_fetch():
-    """Изолированный асинхронный сбор данных"""
+    """Асинхронный параллельный сбор цен."""
     tickers = ["btc_usd", "eth_usd"]
-    results = []
-
     async with DeribitClient(base_url=settings.DERIBIT_BASE_URL) as client:
-        for ticker in tickers:
-            try:
-                price = await client.get_index_price(ticker)
-                results.append({
-                    "ticker": ticker,
-                    "price": price,
-                    "timestamp": int(time.time())
-                })
-            except Exception as e:
-                print(f"[Celery Async] Ошибка сбора {ticker}: {e}")
-    return results
+        tasks = [client.get_index_price(ticker) for ticker in tickers]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    processed = []
+    for ticker, result in zip(tickers, results):
+        if isinstance(result, Exception):
+            logger.error(f"Не удалось получить цену {ticker}: {result}")
+        else:
+            processed.append({
+                "ticker": ticker,
+                "price": round(result, 2),
+                "timestamp": int(time.time())
+            })
+    return processed
 
 
 @celery_app.task
 def fetch_crypto_prices():
-    """
-    Синхронный маршал Celery: запускает изолированный цикл
-    и пишет в БД через psycopg2
-    """
+    """Задача Celery: сбор цен и запись в БД."""
     try:
         fetched_data = asyncio.run(_async_fetch())
-    except Exception as e:
-        print(f"[Celery] Ошибка выполнения асинхронного цикла: {e}")
+    except Exception:
+        logger.exception("Ошибка выполнения асинхронного цикла")
         return
 
-    if fetched_data:
-        with SyncSessionLocal() as db_session:
-            try:
-                prices_to_save = []
-                for item in fetched_data:
-                    db_price = TickerPrice(
-                        ticker=item["ticker"],
-                        price=round(item["price"], 2),
-                        timestamp=item["timestamp"]
-                    )
-                    prices_to_save.append(db_price)
-                    print(
-                        f"[Celery Success] Получено: "
-                        f"{item['ticker']} = {item['price']}"
-                        )
+    if not fetched_data:
+        logger.warning("Нет данных для сохранения")
+        return
 
-                db_session.add_all(prices_to_save)
-                db_session.commit()
-                print(
-                    f"[Celery] Пачка из {len(prices_to_save)} "
-                    f"цен успешно зафиксирована в PostgreSQL."
+    for item in fetched_data:
+        logger.info(
+            f"[Celery Success] Получено: "
+            f"{item['ticker']} = {item['price']}"
+        )
+
+    try:
+        with SyncSessionLocal() as db_session:
+            prices_to_save = [
+                TickerPrice(
+                    ticker=item["ticker"],
+                    price=item["price"],
+                    timestamp=item["timestamp"]
                 )
-            except Exception as e:
-                db_session.rollback()
-                print(f"[Celery] Ошибка записи пачки в БД: {e}")
+                for item in fetched_data
+            ]
+            db_session.add_all(prices_to_save)
+            db_session.commit()
+            logger.info(f"Сохранено {len(prices_to_save)} цен в БД")
+
+    except Exception:
+        logger.exception("Ошибка записи в БД")

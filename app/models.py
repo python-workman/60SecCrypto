@@ -16,7 +16,6 @@ class TickerPrice(Base):
     price: Mapped[float] = mapped_column(Float, nullable=False)
     timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
-    # Индекс для ускорения GET-запросов API
     __table_args__ = (
         Index("ix_ticker_timestamp", "ticker", "timestamp"),
     )
