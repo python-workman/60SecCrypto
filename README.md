@@ -41,7 +41,7 @@
 
 ### Шаг 1. Клонирование репозитория
 ```bash
-git clone <ссылка_на_ваш_gitlab_репозиторий>
+git clone <https://github.com/python-workman/60SecCrypto>
 cd 60SecCrypto
 ```
 
