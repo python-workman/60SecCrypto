@@ -68,7 +68,13 @@ docker-compose up --build
 
 Подождите 1 минуту после старта, чтобы Celery Beat успел отправить первую задачу и наполнить базу котировками. 
 
----
+### 🛢 Прямое подключение к базе данных (для проверки)
+
+Если вам необходимо проверить заполнение таблиц напрямую в СУБД PostgreSQL, вы можете подключиться к работающему контейнеру через утилиту `psql` следующей командой:
+```bash
+docker exec -it cryptosec_db psql -U postgres -d deribit_db -c "SELECT * FROM ticker_prices ORDER BY timestamp DESC LIMIT 10;"
+```
+
 
 ## 📡 Документация API эндпоинтов
 
